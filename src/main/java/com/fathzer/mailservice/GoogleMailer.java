@@ -1,5 +1,6 @@
 package com.fathzer.mailservice;
 
+import java.util.List;
 import java.util.Properties;
 
 import javax.mail.Message;
@@ -23,7 +24,7 @@ public class GoogleMailer {
 		this.password = userPwd;
 	}
 
-	public void sendMail(String recipients[], String subject, String message) throws MessagingException {
+	public void sendMail(List<String> recipients, String subject, String message) throws MessagingException {
 		boolean debug = true;
 
 		Properties props = new Properties();
@@ -50,9 +51,11 @@ public class GoogleMailer {
 		msg.setSubject(subject);
 		msg.setContent(message, "text/plain");
 
-		InternetAddress[] addressTo = new InternetAddress[recipients.length];
-		for (int i = 0; i < recipients.length; i++) {
-			addressTo[i] = new InternetAddress(recipients[i]);
+		InternetAddress[] addressTo = new InternetAddress[recipients.size()];
+		int i=0;
+		for (String recipient : recipients) {
+			addressTo[i] = new InternetAddress(recipient);
+			i++;
 		}
 		msg.setRecipients(Message.RecipientType.TO, addressTo);
 
