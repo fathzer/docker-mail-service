@@ -18,20 +18,20 @@ public class GoogleMailer {
 
 	private String user;
 	private String password;
+	private boolean debug;
 
 	public GoogleMailer(String userAddress, String userPwd) {
 		this.user = userAddress;
 		this.password = userPwd;
+		this.debug = false;
 	}
 
 	public void sendMail(List<String> recipients, String subject, String message) throws MessagingException {
-		boolean debug = true;
-
 		Properties props = new Properties();
 		props.put("mail.smtp.host", SMTP_HOST_NAME);
 		props.put("mail.smtp.starttls.enable","true");
 		props.put("mail.smtp.auth", "true");
-		props.put("mail.debug", "true");
+		props.put("mail.debug", Boolean.toString(debug));
 		props.put("mail.smtp.port", SMTP_PORT);
 		props.put("mail.smtp.socketFactory.port", SMTP_PORT);
 		props.put("mail.smtp.socketFactory.class", SSL_FACTORY);
@@ -49,7 +49,7 @@ public class GoogleMailer {
 		InternetAddress addressFrom = new InternetAddress(user);
 		msg.setFrom(addressFrom);
 		msg.setSubject(subject);
-		msg.setContent(message, "text/plain");
+		msg.setContent(message, "text/plain; charset=UTF-8");
 
 		InternetAddress[] addressTo = new InternetAddress[recipients.size()];
 		int i=0;
