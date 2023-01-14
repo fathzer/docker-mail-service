@@ -17,11 +17,14 @@ public class MailerBuilder {
 	private int port;
 	
 	public MailerBuilder(String host) {
-		this.host = host;
+		this.withHost(host);
 		this.withEncryption(Encryption.SSL);
 	}
 	
 	public MailerBuilder withHost(String host) {
+		if (host==null) {
+			throw new IllegalStateException("Host is null");
+		}
 		this.host = host;
 		return this;
 	}
@@ -52,9 +55,6 @@ public class MailerBuilder {
 	}
 
 	public Mailer build() {
-		if (host==null) {
-			throw new IllegalStateException("Host is null");
-		}
 		if (from==null) {
 			throw new IllegalStateException("From adress is null");
 		}
@@ -84,8 +84,31 @@ public class MailerBuilder {
 		} else {
 			auth = null;
 		}
-		System.out.println(props);
 		final Session session = Session.getDefaultInstance(props, auth);
 		return new DefaultMailer(session, from);
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public String getUser() {
+		return user;
+	}
+
+	public String getPwd() {
+		return pwd;
+	}
+
+	public String getFrom() {
+		return from;
+	}
+
+	public Encryption getEncryption() {
+		return encryption;
+	}
+
+	public int getPort() {
+		return port;
 	}
 }
