@@ -1,36 +1,33 @@
 package com.fathzer.mailservice;
 
-import java.util.Collections;
-
 import org.apache.commons.validator.routines.EmailValidator;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.glassfish.jersey.server.ResourceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
-public class MailApplication extends ResourceConfig {
-	private static final Logger LOGGER = LoggerFactory.getLogger(MailApplication.class);
+import com.fathzer.mail.GoogleMailer;
+import com.fathzer.mail.Mailer;
 
-	public MailApplication() {
-		super(Collections.singleton(MailService.class));
-		String user = System.getenv("user");
-		String pwd = System.getenv("pwd");
-		String error = null;
+@SpringBootApplication
+public class MailApplication {
+	private static final String GMAIL_HOST_NAME = "smtp.gmail.com";
+	
+	public static void main(String[] args) {
+        SpringApplication.run(MailApplication.class, args);
+	}
+	
+	@Bean
+	public Mailer getMailer() {
+		
+		
+		String user = System.getenv("USER");
+		String pwd = System.getenv("PWD");
 		if (user==null || pwd==null) {
-			error = "User or pwd environment variable is not defined";
+			throw new IllegalStateException("User or pwd environment variable is not defined");
 		} else if (!EmailValidator.getInstance().isValid(user)) {
-			error = user+" is not a valid mail address";
+			throw new IllegalStateException(user+" is not a valid mail address");
+		} else {
+			return new GoogleMailer(user, pwd);
 		}
-		if (error!=null) {
-			LOGGER.error(error);
-			System.exit(1);
-		}
-		GoogleMailer mailer = new GoogleMailer(user, pwd);
-		this.register(new AbstractBinder() {
-			@Override
-			protected void configure() {
-				bind(mailer).to(GoogleMailer.class);
-			}
-		});
 	}
 }

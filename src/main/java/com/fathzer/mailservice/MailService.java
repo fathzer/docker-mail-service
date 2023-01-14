@@ -1,36 +1,40 @@
 package com.fathzer.mailservice;
 
-import java.net.HttpURLConnection;
 import java.util.List;
 
-import javax.inject.Inject;
 import javax.mail.AuthenticationFailedException;
 import javax.mail.MessagingException;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.apache.commons.validator.routines.EmailValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Path("/send")
+import com.fathzer.mail.Mailer;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+
+@RestController
 public class MailService {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MailService.class);
 
-	@Inject
-	private GoogleMailer mailer;
+	@Autowired
+	private Mailer mailer;
 
-	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	@Produces(MediaType.TEXT_PLAIN)
-	public Response send(@QueryParam("dest") List<String> dest, @FormParam("subject") String subject, @FormParam("body") String body) {
-		StringBuilder errors = new StringBuilder();
+	
+	@Operation(description = "Sends a mail")
+	@PostMapping(value="/v1/send", produces = MediaType.TEXT_PLAIN_VALUE)
+	public ResponseEntity<String> send(@Parameter(description = "The mail addresses of the recipients of the mail") @RequestParam("dest") List<String> dest,
+			@Parameter(description = "The mail subject") @RequestParam("subject") String subject,
+			@Parameter(description = "The content of the email") @RequestParam("body") String body) {
+		final StringBuilder errors = new StringBuilder();
 		if (dest==null || dest.isEmpty()) {
 			errors.append("No dest specified");
 		} else {
@@ -50,18 +54,18 @@ public class MailService {
 			addError(errors, "subject");
 		}
 		if (errors.length()>0) {
-			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(errors.toString()).build();
+			return ResponseEntity.badRequest().body(errors.toString());
 		}
 		try {
 			mailer.sendMail(dest, subject, body);
 			LOGGER.trace("Mail sent to {}", dest);
-			return Response.status(HttpURLConnection.HTTP_OK).entity("Mail sent to "+dest+" using GMail").build();
+			return ResponseEntity.ok().body("Mail sent to "+dest+" using GMail");
 		} catch (AuthenticationFailedException e) {
 			LOGGER.warn("Authentication error", e);
-			return Response.status(HttpURLConnection.HTTP_FORBIDDEN).entity("Authentication error").build();
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Authentication error");
 		} catch (MessagingException e) {
 			LOGGER.error("Unable to send mail", e);
-			return Response.status(500).entity("An error occurred").build();
+			return ResponseEntity.status(500).body("An error occurred");
 		}
 	}
 
