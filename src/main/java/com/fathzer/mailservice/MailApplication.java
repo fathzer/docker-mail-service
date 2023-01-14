@@ -1,12 +1,11 @@
 package com.fathzer.mailservice;
 
-import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import com.fathzer.mail.GoogleMailer;
 import com.fathzer.mail.Mailer;
+import com.fathzer.mail.MailerBuilder;
 
 @SpringBootApplication
 public class MailApplication {
@@ -18,16 +17,8 @@ public class MailApplication {
 	
 	@Bean
 	public Mailer getMailer() {
-		
-		
 		String user = System.getenv("USER");
 		String pwd = System.getenv("PWD");
-		if (user==null || pwd==null) {
-			throw new IllegalStateException("User or pwd environment variable is not defined");
-		} else if (!EmailValidator.getInstance().isValid(user)) {
-			throw new IllegalStateException(user+" is not a valid mail address");
-		} else {
-			return new GoogleMailer(user, pwd);
-		}
+		return new MailerBuilder(GMAIL_HOST_NAME).withAuthentication(user, pwd).build();
 	}
 }
