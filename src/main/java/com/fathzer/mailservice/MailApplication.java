@@ -1,10 +1,5 @@
 package com.fathzer.mailservice;
 
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -51,19 +46,12 @@ public class MailApplication {
 		log.info("Services will use a SMTP connection of {} user to {}:{} with {} encryption",mailerBuilder.getUser()==null?"no":mailerBuilder.getUser(), host,mailerBuilder.getPort(),Encryption.NONE.equals(mailerBuilder.getEncryption()) ? "no" : mailerBuilder.getEncryption());
 		
 		final String authorizedStr = System.getenv("AUTHORIZED_DEST");
-		final Set<String> authorizedDest;
+		final AddressValidator authorizedDest;
 		if (authorizedStr==null) {
-			authorizedDest = null;
+			authorizedDest = new AddressValidator();
 		} else {
-			final EmailValidator validator = EmailValidator.getInstance();
-			authorizedDest = Arrays.stream(authorizedStr.split(",")).map(s-> {
-					final String candidate = s.trim().toLowerCase();
-					if (!validator.isValid(candidate)) {
-						throw new IllegalArgumentException(candidate+" is not a valid email address");
-					}
-					return candidate;
-				}).collect(Collectors.toSet());
-			log.info("Only the following recipients are authorized: {}",authorizedDest);
+			authorizedDest = new AddressValidator(authorizedStr);
+			log.info("Only the following recipients are authorized: {}",authorizedDest.getAuthorized());
 		}
 		return new MailSettings(mailer,authorizedDest);
 	}

@@ -13,10 +13,15 @@ import javax.mail.MessagingException;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.fathzer.mail.Mailer;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,12 +34,12 @@ public class MailService {
 	private MailSettings mailSettings;
 	private static final EmailValidator VALIDATOR = EmailValidator.getInstance();
 	
-	@Operation(description = "Sends a mail")
-	@PostMapping(value="/v1/send")
+	@Operation(description = "Sends an email")
+	@PostMapping(value="/v1/send", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<Collection<String>> send(@Parameter(description = "The mail addresses of the recipients of the mail") @RequestParam("dest") List<String> dest,
 			@Parameter(description = "The mail subject") @RequestParam("subject") String subject,
-			@Parameter(description = "The content of the email") @RequestParam("body") String body) {
-//FIXME body clearly can't be in request param (it could be long)
+			@Parameter(description = "The content of the email") @RequestBody String body,
+			@Parameter(description = "The encoding of the email", example = "text/html") @RequestHeader(name = "Content-Type", required=false, defaultValue = Mailer.TEXT_UTF8) String contentType) {
 		dest = dest.stream().map(String::trim).collect(Collectors.toList());
 		final List<String> errors = new LinkedList<>();
 		if (dest==null || dest.isEmpty()) {
@@ -46,7 +51,7 @@ public class MailService {
 			return ResponseEntity.badRequest().body(errors);
 		}
 		try {
-			mailSettings.getMailer().sendMail(dest, subject, body);
+			mailSettings.mailer().sendMail(dest, subject, body, contentType);
 			log.trace("Mail sent to {}", dest);
 			return ResponseEntity.ok().body(Collections.singleton("Mail sent to "+dest));
 		} catch (AuthenticationFailedException e) {
@@ -60,7 +65,7 @@ public class MailService {
 	}
 	
 	private String getError(String dest) {
-		if (!mailSettings.isAuthorized(dest)) {
+		if (!mailSettings.destValidator().test(dest)) {
 			return dest+" is not an authorized email address";
 		} else if (!VALIDATOR.isValid(dest)) {
 			return dest+" is not a valid email address";

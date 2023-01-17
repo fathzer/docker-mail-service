@@ -34,7 +34,7 @@ public class DefaultMailer implements Mailer {
 	}
 
 	@Override
-	public void sendMail(List<String> recipients, String subject, String message) throws MessagingException {
+	public void sendMail(List<String> recipients, String subject, String message, String mimeType) throws MessagingException {
 
 		final Message msg = new MimeMessage(session);
 		msg.setFrom(sender);
@@ -43,7 +43,7 @@ public class DefaultMailer implements Mailer {
 		}
 		msg.setRecipients(Message.RecipientType.TO, toAddresses(recipients));
 		msg.setSubject(subject);
-		msg.setContent(message, "text/plain; charset=UTF-8");
+		msg.setContent(message, mimeType);
 
 		// Setting the Subject and Content Type
 		Transport.send(msg);
