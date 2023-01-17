@@ -26,9 +26,9 @@ public class MailApplication {
 			host = GMAIL_HOST_NAME;
 		}
 		final MailerBuilder mailerBuilder = new MailerBuilder(host);
-		String user = System.getenv("USER");
+		String user = System.getenv("HOST_USER");
 		if (user!=null) {
-			mailerBuilder.withAuthentication(user, System.getenv("PWD"));
+			mailerBuilder.withAuthentication(user, System.getenv("HOST_PWD"));
 		}
 		String encryptionStr = System.getenv("ENCRYPTION");
 		if (encryptionStr!=null) {

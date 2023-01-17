@@ -35,7 +35,6 @@ public class DefaultMailer implements Mailer {
 
 	@Override
 	public void sendMail(List<String> recipients, String subject, String message, String mimeType) throws MessagingException {
-
 		final Message msg = new MimeMessage(session);
 		msg.setFrom(sender);
 		if (replyTo!=null) {

@@ -1,4 +1,4 @@
-FROM openjdk:11-jre
+FROM openjdk:17-slim
 
 ENV RUN_USER mailservice
 ENV RUN_GROUP mailservice
@@ -13,4 +13,4 @@ USER ${RUN_USER}
 
 EXPOSE 8080
 
-CMD ["java", "-Xmx128m", "-jar", "mail-service.jar"]
+CMD java $JAVA_OPTS -jar mail-service.jar
