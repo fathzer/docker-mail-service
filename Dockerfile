@@ -13,4 +13,4 @@ USER ${RUN_USER}
 
 EXPOSE 8080
 
-CMD java $JAVA_OPTS -jar mail-service.jar
+CMD ["sh","-c","java ${JAVA_OPTS} -jar mail-service.jar"]

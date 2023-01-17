@@ -6,15 +6,15 @@ The docker image is available on [Docker Hub](https://hub.docker.com/r/fathzer/m
 
 # How to use the image
 
-docker run -d --rm -e HOST__USER="me@gmail.com" -e HOST__PWD="myspecialapppwd" -p 8080:8080 fathzer/mail-service
+docker run -d --rm -e HOST_USER="me@gmail.com" -e HOST_PWD="myapppwd" -p 8080:8080 fathzer/mail-service
 
 ## Environment variables
 All environment variables are optional. Nevertheless, some smtp server's will require some (typically USER and PWD).
 
 - HOST (optional): The STMP server to use (default is *smtp.gmail.com*, which corresponds to GMail).
-- HOST__USER (optional): The user used to authenticate on server (No authentication if missing - This should not be supported by reliable SMTP server).  
+- HOST_USER (optional): The user used to authenticate on server (No authentication if missing - This should not be supported by reliable SMTP server).  
 Please note that GMail requires an [application password](https://support.google.com/accounts/answer/185833) that is different from the GMail user' password. 
-- HOST__PWD (optional): The password used to authenticate on server (Default is empty)
+- HOST_PWD (optional): The password used to authenticate on server (Default is empty)
 - FROM (optional if USER is provided): The email address of the sender. if missing USER environment variable is used instead.
 - ENCRYPTION (optional): The following values are allowed:  
     - NONE to have no encryption (This should not be supported anymore by reliable SMTP server).
@@ -24,7 +24,7 @@ Please note that GMail requires an [application password](https://support.google
 - AUTHORIZED_DEST (optional): A comma separated list of recipient emails that will be accepted be the service.
 This allows you to prevent an attacker from using your service to send junk emails to anybody.
 If this variable is not defined, all recipients are authorized.
-- JAVA__OPTS: command line options passed to the java virtual machine. It is typically used to set the memory size (example -eJAVA__OPTS="-Xmx128m").  
+- JAVA_OPTS: command line options passed to the java virtual machine. It is typically used to set the memory size (example -e "JAVA_OPTS=-Xmx128m").  
 
 ## Open API documentation
 After the server is launched, open api documentation is available at [http://127.0.0.1:8080/v3/api-docs](http://127.0.0.1:8080/v3/api-docs).  
