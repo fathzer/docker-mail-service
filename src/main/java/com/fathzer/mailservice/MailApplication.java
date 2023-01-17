@@ -1,6 +1,10 @@
 package com.fathzer.mailservice;
 
-import org.slf4j.LoggerFactory;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.validator.routines.EmailValidator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -9,7 +13,10 @@ import com.fathzer.mail.Encryption;
 import com.fathzer.mail.Mailer;
 import com.fathzer.mail.MailerBuilder;
 
+import lombok.extern.slf4j.Slf4j;
+
 @SpringBootApplication
+@Slf4j
 public class MailApplication {
 	private static final String GMAIL_HOST_NAME = "smtp.gmail.com";
 	
@@ -18,7 +25,7 @@ public class MailApplication {
 	}
 	
 	@Bean
-	public Mailer getMailer() {
+	public MailSettings getMailer() {
 		String host = System.getenv("HOST");
 		if (host==null) {
 			host = GMAIL_HOST_NAME;
@@ -41,7 +48,23 @@ public class MailApplication {
 			mailerBuilder.withFrom(from);
 		}
 		final Mailer mailer = mailerBuilder.build();
-		LoggerFactory.getLogger(MailApplication.class).info("Services will use a SMTP connection of {} user to {}:{} with {} encryption",mailerBuilder.getUser()==null?"no":mailerBuilder.getUser(), host,mailerBuilder.getPort(),Encryption.NONE.equals(mailerBuilder.getEncryption()) ? "no" : mailerBuilder.getEncryption());
-		return mailer;
+		log.info("Services will use a SMTP connection of {} user to {}:{} with {} encryption",mailerBuilder.getUser()==null?"no":mailerBuilder.getUser(), host,mailerBuilder.getPort(),Encryption.NONE.equals(mailerBuilder.getEncryption()) ? "no" : mailerBuilder.getEncryption());
+		
+		final String authorizedStr = System.getenv("AUTHORIZED_DEST");
+		final Set<String> authorizedDest;
+		if (authorizedStr==null) {
+			authorizedDest = null;
+		} else {
+			final EmailValidator validator = EmailValidator.getInstance();
+			authorizedDest = Arrays.stream(authorizedStr.split(",")).map(s-> {
+					final String candidate = s.trim().toLowerCase();
+					if (!validator.isValid(candidate)) {
+						throw new IllegalArgumentException(candidate+" is not a valid email address");
+					}
+					return candidate;
+				}).collect(Collectors.toSet());
+			log.info("Only the following recipients are authorized: {}",authorizedDest);
+		}
+		return new MailSettings(mailer,authorizedDest);
 	}
 }
