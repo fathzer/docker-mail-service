@@ -25,6 +25,7 @@ import com.fathzer.mail.Mailer;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -35,11 +36,12 @@ public class MailService {
 	private static final EmailValidator VALIDATOR = EmailValidator.getInstance();
 	
 	@Operation(description = "Sends an email")
-	@PostMapping(value="/v1/send", produces = MediaType.APPLICATION_JSON_VALUE)
+	@PostMapping(value="/v1/send", produces = MediaType.APPLICATION_JSON_VALUE, consumes = {MediaType.TEXT_PLAIN_VALUE, MediaType.TEXT_HTML_VALUE})
 	public ResponseEntity<Collection<String>> send(@Parameter(description = "The mail addresses of the recipients of the mail") @RequestParam("dest") List<String> dest,
 			@Parameter(description = "The mail subject") @RequestParam("subject") String subject,
-			@Parameter(description = "The content of the email") @RequestBody String body,
-			@Parameter(description = "The encoding of the email", example = "text/html") @RequestHeader(name = "Content-Type", required=false, defaultValue = Mailer.TEXT_UTF8) String contentType) {
+			@Schema(description = "The content of the email.\n\nPlease note that the 'Content-Type' header is used to determine the encoding of the email.  \nOnly text/html and text/plain are accepted",
+					example = "This is a cool email") @RequestBody String body,
+			@Parameter(hidden=true) @RequestHeader(name = "Content-Type", required=false, defaultValue = Mailer.TEXT_UTF8) String contentType) {
 		dest = dest.stream().map(String::trim).collect(Collectors.toList());
 		final List<String> errors = new LinkedList<>();
 		if (dest==null || dest.isEmpty()) {
