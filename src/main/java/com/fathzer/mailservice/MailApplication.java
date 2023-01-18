@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import com.fathzer.mail.Encryption;
+import com.fathzer.mail.MailAddress;
 import com.fathzer.mail.Mailer;
 import com.fathzer.mail.MailerBuilder;
 
@@ -40,7 +41,7 @@ public class MailApplication {
 		}
 		final String from = System.getenv("FROM");
 		if (from!=null) {
-			mailerBuilder.withFrom(from);
+			mailerBuilder.withFrom(new MailAddress(from));
 		}
 		final Mailer mailer = mailerBuilder.build();
 		log.info("Services will use a SMTP connection of {} user to {}:{} with {} encryption",mailerBuilder.getUser()==null?"no":mailerBuilder.getUser(), host,mailerBuilder.getPort(),Encryption.NONE.equals(mailerBuilder.getEncryption()) ? "no" : mailerBuilder.getEncryption());

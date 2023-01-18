@@ -2,17 +2,15 @@ package com.fathzer.mail;
 
 import java.util.Properties;
 
-import javax.mail.Authenticator;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-
-import org.apache.commons.validator.routines.EmailValidator;
+import jakarta.mail.Authenticator;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
 
 public class MailerBuilder {
 	private String host;
 	private String user;
 	private String pwd;
-	private String from;
+	private MailAddress from;
 	private Encryption encryption;
 	private int port;
 	
@@ -39,12 +37,16 @@ public class MailerBuilder {
 		this.user = user;
 		this.pwd = pwd;
 		if (from==null) {
-			from = user;
+			try {
+				from = new MailAddress(user);
+			} catch (IllegalArgumentException e) {
+				// Ok, user is not a mail address 
+			}
 		}
 		return this;
 	}
 
-	public MailerBuilder withFrom(String from) {
+	public MailerBuilder withFrom(MailAddress from) {
 		this.from = from;
 		return this;
 	}
@@ -57,9 +59,6 @@ public class MailerBuilder {
 	public Mailer build() {
 		if (from==null) {
 			throw new IllegalStateException("From adress is null");
-		}
-		if (!EmailValidator.getInstance().isValid(from)) {
-			throw new IllegalStateException(from+" is not a valid mail address");
 		}
 		if (port<=0) {
 			throw new IllegalStateException("Port is <= 0");
@@ -100,7 +99,7 @@ public class MailerBuilder {
 		return pwd;
 	}
 
-	public String getFrom() {
+	public MailAddress getFrom() {
 		return from;
 	}
 

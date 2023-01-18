@@ -1,63 +1,57 @@
 package com.fathzer.mail;
 
+import java.io.IOException;
 import java.util.List;
 
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.MimeMessage;
 
 public class DefaultMailer implements Mailer {
 	private final Session session;
 	private Address sender;
 	private Address[] replyTo;
 
-	public DefaultMailer(Session session, String sender) {
+	public DefaultMailer(Session session, MailAddress sender) {
 		this.session = session;
-		this.sender = toAddress(sender);
+		this.sender = sender.getAddress();
 	}
 	
 	public void setDebug(boolean debug) {
 		session.setDebug(debug);
 	}
 	
-	public void setSender(String sender) {
-		this.sender = toAddress(sender);
+	public void setSender(MailAddress sender) {
+		this.sender = sender.getAddress();
 	}
 	
-	public void setReplyTo(List<String> replyTo) {
+	public void setReplyTo(List<MailAddress> replyTo) {
 		this.replyTo = replyTo==null?null:toAddresses(replyTo);
 	}
 
 	@Override
-	public void sendMail(List<String> recipients, String subject, String message, String mimeType) throws MessagingException {
-		final Message msg = new MimeMessage(session);
-		msg.setFrom(sender);
-		if (replyTo!=null) {
-			msg.setReplyTo(replyTo);
+	public void sendMail(List<MailAddress> recipients, String subject, String message, MimeType mimeType) throws IOException {
+		try {
+			final Message msg = new MimeMessage(session);
+			msg.setFrom(sender);
+			if (replyTo!=null) {
+				msg.setReplyTo(replyTo);
+			}
+			msg.setRecipients(Message.RecipientType.TO, recipients.stream().map(MailAddress::getAddress).toArray(Address[]::new));
+			msg.setSubject(subject);
+			msg.setContent(message, mimeType.toString());
+	
+			// Setting the Subject and Content Type
+			Transport.send(msg);
+		} catch (MessagingException e) {
+			throw new IOException(e);
 		}
-		msg.setRecipients(Message.RecipientType.TO, toAddresses(recipients));
-		msg.setSubject(subject);
-		msg.setContent(message, mimeType);
-
-		// Setting the Subject and Content Type
-		Transport.send(msg);
 	}
 	
-	private Address toAddress(String addr) {
-		try {
-			return new InternetAddress(addr);
-		} catch (AddressException e) {
-			throw new IllegalArgumentException(e);
-		}
+	private Address[] toAddresses(List<MailAddress> addr) {
+		return addr.stream().map(MailAddress::getAddress).toArray(Address[]::new);
 	}
-
-	private Address[] toAddresses(List<String> addr) {
-		return addr.stream().map(this::toAddress).toArray(Address[]::new);
-	}
-
 }
