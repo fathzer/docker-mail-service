@@ -4,6 +4,8 @@ A web service to send emails from a fixed address using an external SMTP server.
 
 The docker image is available on [Docker Hub](https://hub.docker.com/r/fathzer/mail-service). Source code is available on [GitHub](https://github.com/fathzer/docker-mail-service).
 
+It is based on the [com.fathzer:mail-sender](https://github.com/fathzer/docker-mail-service/mail-sender) library available on Maven Central ![Maven Central](https://img.shields.io/maven-central/v/com.fathzer/mail-sender).
+
 # How to use the image
 
 docker run -d --rm -e HOST_USER="me@gmail.com" -e HOST_PWD="myapppwd" -p 8080:8080 fathzer/mail-service
