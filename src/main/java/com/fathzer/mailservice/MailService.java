@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fathzer.mail.MailAddress;
+import com.fathzer.mail.EMailAddress;
+import com.fathzer.mail.EMail;
 import com.fathzer.mail.MimeType;
+import com.fathzer.mail.Recipients;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,18 +42,19 @@ public class MailService {
 			@Parameter(hidden=true) @RequestHeader(name = "Content-Type") String contentType) {
 		dest = dest.stream().map(String::trim).collect(Collectors.toList());
 		final List<String> errors = new LinkedList<>();
-		final List<MailAddress> recipients;
+		final Recipients recipients;
 		if (dest==null || dest.isEmpty()) {
 			errors.add("No dest specified");
 			recipients = null;
 		} else {
-			recipients = dest.stream().map(addr -> this.toMailAddress(errors,addr)).collect(Collectors.toList());
+			recipients = new Recipients();
+			recipients.setTo(dest.stream().map(addr -> this.toMailAddress(errors,addr)).toList());
 		}
 		if (!errors.isEmpty()) {
 			return ResponseEntity.badRequest().body(errors);
 		}
 		try {
-			mailSettings.mailer().sendMail(recipients, subject, body, new MimeType(contentType));
+			mailSettings.mailer().send(new EMail(recipients, subject, body).withMimeType(new MimeType(contentType)));
 			log.trace("Mail sent to {}", dest);
 			return ResponseEntity.ok().body(Collections.singleton("Mail sent to "+dest));
 		} catch (IOException e) {
@@ -60,13 +63,13 @@ public class MailService {
 		}
 	}
 	
-	private MailAddress toMailAddress(List<String> errors, String dest) {
+	private EMailAddress toMailAddress(List<String> errors, String dest) {
 		if (!mailSettings.destValidator().test(dest)) {
 			errors.add(dest+" is not an authorized email address");
 			return null;
 		}
 		try {
-			return new MailAddress(dest);
+			return new EMailAddress(dest);
 		} catch (IllegalArgumentException e) {
 			// Nothing to do, specified user is wrong
 			errors.add(dest+" is not a valid email address");

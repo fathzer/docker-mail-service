@@ -4,7 +4,7 @@ A web service to send emails from a fixed address using an external SMTP server.
 
 The docker image is available on [Docker Hub](https://hub.docker.com/r/fathzer/mail-service). Source code is available on [GitHub](https://github.com/fathzer/docker-mail-service).
 
-It is based on the [com.fathzer:mail-sender](https://github.com/fathzer/docker-mail-service/mail-sender) library available on Maven Central ![Maven Central](https://img.shields.io/maven-central/v/com.fathzer/mail-sender).
+It is based on the [com.fathzer:mail-sender](https://github.com/fathzer/mail-sender) java library available on ![Maven Central](https://img.shields.io/maven-central/v/com.fathzer/mail-sender).
 
 # How to use the image
 
@@ -20,8 +20,8 @@ Please note that GMail requires an [application password](https://support.google
 - FROM (optional if USER is provided): The email address of the sender. if missing USER environment variable is used instead.
 - ENCRYPTION (optional): The following values are allowed:  
     - NONE to have no encryption (This should not be supported anymore by reliable SMTP server).
-    - TLS to use TLS encryption.
-    - SSL (This is the default) to use SSL encryption.
+    - TLS (This is the default) to use TLS encryption.
+    - SSL to use SSL encryption.
 - PORT (optional): The port to use. By default, it depends on the encryption (25, 587 or 465).
 - AUTHORIZED_DEST (optional): A comma separated list of recipient emails that will be accepted be the service.
 This allows you to prevent an attacker from using your service to send junk emails to anybody.
