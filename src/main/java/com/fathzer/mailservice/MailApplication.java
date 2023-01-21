@@ -9,7 +9,11 @@ import com.fathzer.mail.EMailAddress;
 import com.fathzer.mail.Mailer;
 import com.fathzer.mail.MailerBuilder;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
 import lombok.extern.slf4j.Slf4j;
+
 
 @SpringBootApplication
 @Slf4j
@@ -19,6 +23,15 @@ public class MailApplication {
 	public static void main(String[] args) {
         SpringApplication.run(MailApplication.class, args);
 	}
+	
+	@Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI().info(new Info().title("Foobar API")
+            .version("v1")
+            .description("A minimal REST API to send mails.")
+            .license(new License().name("License Apache 2.0")
+                .url("https://github.com/fathzer/docker-mail-service/blob/master/LICENSE")));
+    }
 	
 	@Bean
 	public MailSettings getMailer() {
