@@ -1,74 +1,103 @@
 package com.fathzer.mailservice;
 
-import java.net.HttpURLConnection;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
-import javax.inject.Inject;
-import javax.mail.AuthenticationFailedException;
-import javax.mail.MessagingException;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import org.apache.commons.validator.routines.EmailValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fathzer.mail.EMailAddress;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fathzer.mail.EMail;
+import com.fathzer.mail.MimeType;
+import com.fathzer.mail.Recipients;
 
-@Path("/send")
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
+
+@RestController
+@Slf4j
 public class MailService {
-	private static final Logger LOGGER = LoggerFactory.getLogger(MailService.class);
-
-	@Inject
-	private GoogleMailer mailer;
-
-	@POST
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	@Produces(MediaType.TEXT_PLAIN)
-	public Response send(@QueryParam("dest") List<String> dest, @FormParam("subject") String subject, @FormParam("body") String body) {
-		StringBuilder errors = new StringBuilder();
-		if (dest==null || dest.isEmpty()) {
-			errors.append("No dest specified");
+	@Autowired
+	private MailSettings mailSettings;
+	
+	@Operation(description = "Sends an email")
+	@ApiResponse(responseCode = "200", description="The resquest was successfully processed")
+	@ApiResponse(responseCode = "400", description="The arguments passed to this endpoint are wrong")
+	@ApiResponse(responseCode = "500", description="Something went wrong during sending the mail. It's probably due to a server misconfiguration")
+	@PostMapping(value="/v1/mails", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<Reply> send(@Schema(allOf = EMailParams.class) @RequestBody EMailParams body) throws IOException {
+		final Reply reply = new Reply();
+		final Recipients recipients = getRecipients(reply, body);
+		if (body.getContent()==null || body.getContent().trim().isBlank()) {
+			reply.addMessage("Email content is missing");
+		}
+		if (!reply.getMessages().isEmpty()) {
+			return ResponseEntity.badRequest().body(reply);
+		}
+		mailSettings.mailer().send(new EMail(recipients, body.getSubject(), body.getContent()).withMimeType(new MimeType(body.getEncoding())));
+		log.trace("Mail sent");
+		reply.addMessage("Mail sent");
+		return ResponseEntity.ok().body(reply);
+	}
+	
+	private Recipients getRecipients(Reply reply, EMailParams body) {
+		final Recipients result = new Recipients();
+		final List<EMailAddress> to = toAddresses(reply, body.getTo());
+		final List<EMailAddress> cc = toAddresses(reply, body.getCc());
+		final List<EMailAddress> bcc = toAddresses(reply, body.getBcc());
+		if (to.isEmpty() && cc.isEmpty() && bcc.isEmpty()) {
+			reply.addMessage("No recipient is specified");
 		} else {
-			for (String address : dest) {
-				if (!EmailValidator.getInstance().isValid(address)) {
-					if (errors.length()>0) {
-						errors.append('\n');
-					}
-					errors.append(address+" is not a valid email");
-				}
-			}
+			result.setTo(to);
+			result.setCc(cc);
+			result.setBcc(bcc);
 		}
-		if (body==null) {
-			addError(errors, "body");
-		}
-		if (subject==null) {
-			addError(errors, "subject");
-		}
-		if (errors.length()>0) {
-			return Response.status(HttpURLConnection.HTTP_BAD_REQUEST).entity(errors.toString()).build();
+		return result;
+	}
+	
+	private List<EMailAddress> toAddresses(Reply reply, List<String> addresses) {
+		return addresses==null ? Collections.emptyList() : addresses.stream().map(addr -> toMailAddress(reply, addr.trim())).toList();
+	}
+
+	private EMailAddress toMailAddress(Reply reply, String address) {
+		if (!mailSettings.destValidator().test(address)) {
+			reply.addMessage(address+" is not an authorized email address");
+			return null;
 		}
 		try {
-			mailer.sendMail(dest, subject, body);
-			LOGGER.trace("Mail sent to {}", dest);
-			return Response.status(HttpURLConnection.HTTP_OK).entity("Mail sent to "+dest+" using GMail").build();
-		} catch (AuthenticationFailedException e) {
-			LOGGER.warn("Authentication error", e);
-			return Response.status(HttpURLConnection.HTTP_FORBIDDEN).entity("Authentication error").build();
-		} catch (MessagingException e) {
-			LOGGER.error("Unable to send mail", e);
-			return Response.status(500).entity("An error occurred").build();
+			return new EMailAddress(address);
+		} catch (IllegalArgumentException e) {
+			// Nothing to do, specified user is wrong
+			reply.addMessage(address+" is not a valid email address");
+			return null;
 		}
 	}
 
-	public void addError(StringBuilder errors, String formParameterName) {
-		if (errors.length()>0) {
-			errors.append('\n');
-		}
-		errors.append("Missing "+formParameterName+" form parameter");
-	}
+	// This method prevents 500 errors when input JSon is wrong.
+	@ExceptionHandler(JsonProcessingException.class)
+	private ResponseEntity<Object> handleJsonException(JsonProcessingException ex) {
+		final Reply reply = new Reply();
+		log.debug("Unable to decode request", ex);
+		reply.addMessage("Body request seems not to be a valid JSON: "+ex.getMessage());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(reply);
+    }
+
+
+	@ExceptionHandler(IOException.class)
+	private ResponseEntity<Object> handleIOException(IOException ex) {
+		final Reply reply = new Reply();
+		log.error("Unable to send mail", ex);
+		reply.addMessage("An error occurred: "+ex.getMessage());
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(reply);
+    }
 }

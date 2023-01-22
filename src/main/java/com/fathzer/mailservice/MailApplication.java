@@ -1,36 +1,72 @@
 package com.fathzer.mailservice;
 
-import java.util.Collections;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
-import org.apache.commons.validator.routines.EmailValidator;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.glassfish.jersey.server.ResourceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fathzer.mail.Encryption;
+import com.fathzer.mail.EMailAddress;
+import com.fathzer.mail.Mailer;
+import com.fathzer.mail.MailerBuilder;
 
-public class MailApplication extends ResourceConfig {
-	private static final Logger LOGGER = LoggerFactory.getLogger(MailApplication.class);
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import lombok.extern.slf4j.Slf4j;
 
-	public MailApplication() {
-		super(Collections.singleton(MailService.class));
-		String user = System.getenv("user");
-		String pwd = System.getenv("pwd");
-		String error = null;
-		if (user==null || pwd==null) {
-			error = "User or pwd environment variable is not defined";
-		} else if (!EmailValidator.getInstance().isValid(user)) {
-			error = user+" is not a valid mail address";
+
+@SpringBootApplication
+@Slf4j
+public class MailApplication {
+	private static final String GMAIL_HOST_NAME = "smtp.gmail.com";
+	
+	public static void main(String[] args) {
+        SpringApplication.run(MailApplication.class, args);
+	}
+	
+	@Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI().info(new Info().title("Foobar API")
+            .version("v1")
+            .description("A minimal REST API to send mails.")
+            .license(new License().name("License Apache 2.0")
+                .url("https://github.com/fathzer/docker-mail-service/blob/master/LICENSE")));
+    }
+	
+	@Bean
+	public MailSettings getMailer() {
+		String host = System.getenv("HOST");
+		if (host==null) {
+			host = GMAIL_HOST_NAME;
 		}
-		if (error!=null) {
-			LOGGER.error(error);
-			System.exit(1);
+		final MailerBuilder mailerBuilder = new MailerBuilder(host);
+		String user = System.getenv("HOST_USER");
+		if (user!=null) {
+			mailerBuilder.withAuthentication(user, System.getenv("HOST_PWD"));
 		}
-		GoogleMailer mailer = new GoogleMailer(user, pwd);
-		this.register(new AbstractBinder() {
-			@Override
-			protected void configure() {
-				bind(mailer).to(GoogleMailer.class);
-			}
-		});
+		String encryptionStr = System.getenv("ENCRYPTION");
+		if (encryptionStr!=null) {
+			mailerBuilder.withEncryption(Encryption.valueOf(encryptionStr.toUpperCase()));
+		}
+		String portString = System.getenv("PORT");
+		if (portString!=null) {
+			mailerBuilder.withPort(Integer.parseInt(portString));
+		}
+		final String from = System.getenv("FROM");
+		if (from!=null) {
+			mailerBuilder.withDefaultSender(new EMailAddress(from));
+		}
+		final Mailer mailer = mailerBuilder.build();
+		log.info("Services will use a SMTP connection of {} user to {}:{} with {} encryption",mailerBuilder.getUser()==null?"no":mailerBuilder.getUser(), host,mailerBuilder.getPort(),Encryption.NONE.equals(mailerBuilder.getEncryption()) ? "no" : mailerBuilder.getEncryption());
+		
+		final String authorizedStr = System.getenv("AUTHORIZED_RECIPIENTS");
+		final AddressValidator authorizedDest;
+		if (authorizedStr==null) {
+			authorizedDest = new AddressValidator();
+		} else {
+			authorizedDest = new AddressValidator(authorizedStr);
+			log.info("Only the following recipients are authorized: {}",authorizedDest.getAuthorized());
+		}
+		return new MailSettings(mailer,authorizedDest);
 	}
 }
