@@ -25,6 +25,7 @@ curl --location --request POST '127.0.0.1:8080/v1/mails' --header 'Content-Type:
     "content":"A basic message"
 }
 '
+```
 
 ## Environment variables
 All environment variables are optional. Nevertheless, some smtp server's will require some (typically HOST_USER and HOST_PWD).
@@ -60,6 +61,5 @@ You can build it with Maven: ```mvn package``` or with the *docker build* comman
 
 ## TODO
 - Change maven badge to one that works (see mail-sender project)
-- Add a curl example
 - Test java max heap with JAVA_OPTS
 - Test correctness of stop with shutdown hook
