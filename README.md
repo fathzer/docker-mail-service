@@ -6,16 +6,27 @@ The docker image is available on [Docker Hub](https://hub.docker.com/r/fathzer/m
 
 It is based on the [com.fathzer:mail-sender](https://github.com/fathzer/mail-sender) java library available on [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.fathzer/mail-sender/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.fathzer/mail-sender).
 
-# How to use the image
-
-Replace the HOST_USER and HOST_PWD with the credentials of a GMail account you own.  
-Please note that GMail requires an [application password](https://support.google.com/accounts/answer/185833) that is different from the GMail user' password. 
-Then run the following command:  
-```docker run -d --rm -e HOST_USER="me@gmail.com" -e HOST_PWD="myapppwd" -p 8080:8080 fathzer/mail-service```
+# How to use it
+Please note that all examples are based on GMail smtp host.  
+It requires an [application password](https://support.google.com/accounts/answer/185833) that is different from the GMail user' password.  
 
 **Please note that this server is not secured. Any one with a network access to the server can send emails!**  
 It was designed to be used as an internal service in a docker stack, not to be exposed outside of its stack.  
 Even when used if not exposed, it is safer to limit the accepted recipients using the AUTHORIZED_RECIPIENTS environment variable (see below).
+
+## With docker
+
+Replace, in the following command, the HOST_USER and HOST_PWD with the credentials of a GMail account you own.  
+Then run the following command:  
+```docker run -d --rm -e HOST_USER="me@gmail.com" -e HOST_PWD="myapppwd" -p 8080:8080 fathzer/mail-service```
+
+## With 17+ java VM
+
+Compile the project with Maven:  
+``m̀vn clean package```
+Define the HOST_USER and HOST_PWD with the credentials of a GMail account.
+Then run the following command:    
+```java -jar mail-service.jar```
 
 Here is a cUrl command to send a basic message:
 ```
@@ -50,16 +61,15 @@ After the server is launched, open api documentation is available at [http://127
 You can view it with a human friendle interface at [http://127.0.0.1:8080/swagger-ui/index.html](http://127.0.0.1:8080/swagger-ui/index.html).
 
 # Developer notes
-## How to run the service without docker?
+## How to run the service from my development environment?
 Run the class *com.fathzer.mailservice.MailApplication*.
 ## My developement environment reports compilation errors on the project.
 First check your environment is compatible with java 17.
 
 If it is, maybe you should [install lombok](https://projectlombok.org/) in your environment.
 ## How to build the docker image.
-You can build it with Maven: ```mvn package``` or with the *docker build* command: ```docker build -t fathzer/mail-service:latest .```
+You can build it with Maven: ```mvn package -P docker``` or with the *docker build* command: ```docker build -t fathzer/mail-service:latest .```
 
 ## TODO
-- Change maven badge to one that works (see mail-sender project)
 - Test java max heap with JAVA_OPTS
 - Test correctness of stop with shutdown hook
