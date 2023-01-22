@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fathzer.mail.EMailAddress;
-import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fathzer.mail.EMail;
 import com.fathzer.mail.MimeType;
 import com.fathzer.mail.Recipients;
@@ -22,7 +22,6 @@ import com.fathzer.mail.Recipients;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -32,11 +31,9 @@ public class MailService {
 	private MailSettings mailSettings;
 	
 	@Operation(description = "Sends an email")
-	@ApiResponses({
-		@ApiResponse(responseCode = "200", description="The resquest was successfully processed"),
-		@ApiResponse(responseCode = "400", description="The arguments passed to this endpoint are wrong"),
-		@ApiResponse(responseCode = "500", description="Something went wrong during sending the mail. It's probably due to a server misconfiguration")
-	})
+	@ApiResponse(responseCode = "200", description="The resquest was successfully processed")
+	@ApiResponse(responseCode = "400", description="The arguments passed to this endpoint are wrong")
+	@ApiResponse(responseCode = "500", description="Something went wrong during sending the mail. It's probably due to a server misconfiguration")
 	@PostMapping(value="/v1/mails", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<Reply> send(@Schema(allOf = EMailParams.class) @RequestBody EMailParams body) throws IOException {
 		final Reply reply = new Reply();
@@ -56,8 +53,8 @@ public class MailService {
 	private Recipients getRecipients(Reply reply, EMailParams body) {
 		final Recipients result = new Recipients();
 		final List<EMailAddress> to = toAddresses(reply, body.getTo());
-		final List<EMailAddress> cc = toAddresses(reply, body.getTo());
-		final List<EMailAddress> bcc = toAddresses(reply, body.getTo());
+		final List<EMailAddress> cc = toAddresses(reply, body.getCc());
+		final List<EMailAddress> bcc = toAddresses(reply, body.getBcc());
 		if (to.isEmpty() && cc.isEmpty() && bcc.isEmpty()) {
 			reply.addMessage("No recipient is specified");
 		} else {
@@ -86,13 +83,13 @@ public class MailService {
 		}
 	}
 
-	@ExceptionHandler(JsonParseException.class)
-	private ResponseEntity<Object> handleJsonException(JsonParseException ex) {
-		//FIXME Does not work
+	// This method prevents 500 errors when input JSon is wrong.
+	@ExceptionHandler(JsonProcessingException.class)
+	private ResponseEntity<Object> handleJsonException(JsonProcessingException ex) {
 		final Reply reply = new Reply();
-		log.error("Unable to send mail", ex);
-		reply.addMessage("An error occurred: "+ex.getMessage());
-		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(reply);
+		log.debug("Unable to decode request", ex);
+		reply.addMessage("Body request seems not to be a valid JSON: "+ex.getMessage());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(reply);
     }
 
 

@@ -10,8 +10,11 @@ It is based on the [com.fathzer:mail-sender](https://github.com/fathzer/mail-sen
 
 docker run -d --rm -e HOST_USER="me@gmail.com" -e HOST_PWD="myapppwd" -p 8080:8080 fathzer/mail-service
 
+**Please note that this server is not secured. Any one with a network access to the server can send emails!**  
+It was designed to be used as an internal service in a docker stack, not to be exposed outside of its stack.
+
 ## Environment variables
-All environment variables are optional. Nevertheless, some smtp server's will require some (typically USER and PWD).
+All environment variables are optional. Nevertheless, some smtp server's will require some (typically HOST_USER and HOST_PWD).
 
 - HOST (optional): The STMP server to use (default is *smtp.gmail.com*, which corresponds to GMail).
 - HOST_USER (optional): The user used to authenticate on server (No authentication if missing - This should not be supported by reliable SMTP server).  
@@ -23,7 +26,7 @@ Please note that GMail requires an [application password](https://support.google
     - TLS (This is the default) to use TLS encryption.
     - SSL to use SSL encryption.
 - PORT (optional): The port to use. By default, it depends on the encryption (25, 587 or 465).
-- AUTHORIZED_DEST (optional): A comma separated list of recipient emails that will be accepted be the service.
+- AUTHORIZED_DEST (optional): A comma separated list of recipient emails that will be accepted by the service.
 This allows you to prevent an attacker from using your service to send junk emails to anybody.
 If this variable is not defined, all recipients are authorized.
 - JAVA_OPTS: command line options passed to the java virtual machine. It is typically used to set the memory size (example -e "JAVA_OPTS=-Xmx128m").  
@@ -42,3 +45,6 @@ If it is, maybe you should [install lombok](https://projectlombok.org/) in your 
 ## How to build the docker image.
 You can build it with Maven: ```mvn package``` or with the *docker build* command: ```docker build -t fathzer/mail-service:latest .```
 
+## TODO
+Test java max heap with JAVA_OPTS
+Test correct stop with shutdown hook
