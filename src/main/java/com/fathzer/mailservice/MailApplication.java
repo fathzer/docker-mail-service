@@ -59,7 +59,7 @@ public class MailApplication {
 		final Mailer mailer = mailerBuilder.build();
 		log.info("Services will use a SMTP connection of {} user to {}:{} with {} encryption",mailerBuilder.getUser()==null?"no":mailerBuilder.getUser(), host,mailerBuilder.getPort(),Encryption.NONE.equals(mailerBuilder.getEncryption()) ? "no" : mailerBuilder.getEncryption());
 		
-		final String authorizedStr = System.getenv("AUTHORIZED_DEST");
+		final String authorizedStr = System.getenv("AUTHORIZED_RECIPIENTS");
 		final AddressValidator authorizedDest;
 		if (authorizedStr==null) {
 			authorizedDest = new AddressValidator();
